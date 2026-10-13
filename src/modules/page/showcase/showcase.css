@@ -1,0 +1,22 @@
+/* The component sits in a column as wide as the Lightning page region it's built for.
+ * These widths have no SLDS hook equivalent; they approximate Lightning page regions. */
+.stage {
+    margin-block-start: var(--slds-g-spacing-5, 1.5rem);
+}
+
+.stage_main {
+    max-width: 56rem;
+}
+
+.stage_sidebar {
+    max-width: 26rem;
+}
+
+/* A phone-sized frame for the mobile component. */
+.stage_phone {
+    max-width: 24.375rem;
+    padding: var(--slds-g-spacing-2, 0.5rem);
+    border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-1, #e5e5e5);
+    border-radius: var(--slds-g-radius-border-4, 1.25rem);
+    background: var(--slds-g-color-surface-container-2, #f3f3f3);
+}

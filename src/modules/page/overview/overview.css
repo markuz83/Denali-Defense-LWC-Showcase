@@ -1,0 +1,8 @@
+/* Cards in a row share the row's height. */
+lightning-layout-item {
+    display: flex;
+}
+
+.card {
+    flex: 1 1 auto;
+}

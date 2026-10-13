@@ -1,0 +1,45 @@
+<template>
+    <div class="slds-p-horizontal_medium slds-p-bottom_large">
+        <ui-page-header
+            variant="record-home"
+            icon-name="standard:custom_component"
+            object-label="Lightning Web Component"
+            title={title}>
+            <div slot="actions" class="slds-grid slds-grid_vertical-align-center">
+                <template lwc:if={isLive}>
+                    <lightning-button label="Simulate a supplier update" icon-name="utility:refresh"
+                        onclick={handleSimulate} class="slds-m-right_x-small"></lightning-button>
+                </template>
+                <lightning-button label="Reset sample data" icon-name="utility:undo" onclick={handleReset}></lightning-button>
+            </div>
+        </ui-page-header>
+
+        <lightning-layout multiple-rows class="slds-m-top_medium">
+            <lightning-layout-item size="12" large-device-size="8" padding="horizontal-small">
+                <p class="slds-text-title">In Salesforce: {placement}</p>
+                <p class="slds-text-title">Component: {tagName} · Source: {sourcePath}</p>
+                <p class="slds-text-body_regular slds-m-top_xx-small">{summary}</p>
+                <template lwc:if={hasTryIt}>
+                    <h2 class="slds-text-title_caps slds-m-top_small">Try it</h2>
+                    <ul class="slds-list_dotted slds-m-top_xx-small">
+                        <template for:each={tryIt} for:item="tip">
+                            <li key={tip.key}>{tip.text}</li>
+                        </template>
+                    </ul>
+                </template>
+            </lightning-layout-item>
+            <template lwc:if={hasExampleChoice}>
+                <lightning-layout-item size="12" large-device-size="4" padding="horizontal-small">
+                    <lightning-combobox label="Sample record" options={exampleOptions} value={exampleValue}
+                        onchange={handleExampleChange}></lightning-combobox>
+                </lightning-layout-item>
+            </template>
+        </lightning-layout>
+
+        <div class={stageClass}>
+            <template for:each={instances} for:item="instance">
+                <lwc:component key={instance.key} lwc:is={instance.ctor} lwc:spread={instance.props}></lwc:component>
+            </template>
+        </div>
+    </div>
+</template>

@@ -1,0 +1,33 @@
+<template>
+    <div class="slds-p-horizontal_medium slds-p-bottom_large">
+        <ui-page-header
+            icon-name="standard:custom_component"
+            title="Denali Defense Lightning Components"
+            meta-text="Showcase">
+        </ui-page-header>
+
+        <div class="slds-m-top_medium slds-p-horizontal_small">
+            <p class="slds-text-body_regular">
+                The {count} Lightning Web Components from the Denali Defense Salesforce demo org kit, each on its own tab.
+                They run here unchanged, against sample data in place of the org: a fictional government contractor
+                with three customers, two suppliers and a competitor.
+            </p>
+        </div>
+
+        <lightning-layout multiple-rows class="slds-m-top_small">
+            <template for:each={cards} for:item="card">
+                <lightning-layout-item key={card.key} size="12" medium-device-size="6" large-device-size="4" padding="around-small">
+                    <lightning-card title={card.label} icon-name="standard:custom_component" class="card">
+                        <div class="slds-p-horizontal_medium">
+                            <p class="slds-text-color_weak slds-text-body_small">{card.placement}</p>
+                            <p class="slds-m-top_x-small">{card.summary}</p>
+                        </div>
+                        <div slot="footer">
+                            <a href={card.href} data-path={card.path} onclick={handleOpen}>Open {card.label}</a>
+                        </div>
+                    </lightning-card>
+                </lightning-layout-item>
+            </template>
+        </lightning-layout>
+    </div>
+</template>
