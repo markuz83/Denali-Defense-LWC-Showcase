@@ -79,4 +79,9 @@ This builds with hash routing and pushes `dist/` to the `gh-pages` branch. In th
 
 ## Built on
 
-The [Salesforce Design System 2 Starter Kit](https://github.com/salesforce-ux/design-system-2-starter-kit): LWC, Vite, SLDS 2 and Lightning Base Components, with synthetic shadow DOM and client-side routing. The starter kit is licensed under Apache 2.0 (`LICENSE.txt`). This repository changes it: it adds the Denali app, its pages, the platform mocks and the Vite plugin, and makes Denali Components the default app. The starter kit's own Standard, Console and Builder apps are still available from the App Launcher.
+The [Salesforce Design System 2 Starter Kit](https://github.com/salesforce-ux/design-system-2-starter-kit): LWC, Vite, SLDS 2 and Lightning Base Components, with synthetic shadow DOM and client-side routing. This repository changes it: it adds the Denali app, its pages, the platform mocks and the Vite plugin, and makes Denali Components the default app. The starter kit's own Standard, Console and Builder apps are still available from the App Launcher.
+
+## License
+
+- **The Denali code is [MIT](LICENSE):** the components in `src/modules/c/`, the mocks in `src/mocks/`, `src/showcase.config.js`, the Overview and Showcase pages (`src/modules/page/overview/`, `src/modules/page/showcase/`), and `vite-plugins/salesforce-mocks.js`.
+- **Everything else comes from the starter kit and stays under [Apache 2.0](LICENSE-APACHE.txt),** including the starter kit files this repository changes.

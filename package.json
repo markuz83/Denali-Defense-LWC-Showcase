@@ -14,7 +14,7 @@
     "clean": "rm -rf dist .vite node_modules",
     "test": "node --experimental-vm-modules --test tests/*.test.js"
   },
-  "license": "SEE LICENSE IN LICENSE.txt",
+  "license": "(MIT AND Apache-2.0)",
   "type": "module",
   "dependencies": {
     "@lwc/synthetic-shadow": "^9.0.2",
