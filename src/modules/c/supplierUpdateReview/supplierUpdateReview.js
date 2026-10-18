@@ -4,9 +4,10 @@ import { notifyRecordUpdateAvailable } from 'lightning/uiRecordApi';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import getReview from '@salesforce/apex/SupplierUpdateReviewController.getReview';
 import review from '@salesforce/apex/SupplierUpdateReviewController.review';
-import { subscribeToDeliveryChanges, touchesAny } from 'c/deliveryLiveUpdates';
+import { subscribeToDeliveryChanges, affects } from 'c/deliveryLiveUpdates';
+import { LOCALE, parseDate, reduceError } from 'c/denaliFormat';
 
-const DATE = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
+const DATE = new Intl.DateTimeFormat(LOCALE, { month: 'short', day: 'numeric' });
 const OPEN = new Set(['Pending', 'Under Review']);
 const STATUS_CLASS = {
     Pending: 'status status-pending',
@@ -26,16 +27,8 @@ function fmtDate(value) {
     if (!value) return '';
     const s = String(value);
     // Date fields are 'YYYY-MM-DD'; datetimes carry a time part.
-    if (s.length === 10) {
-        const [y, m, d] = s.split('-').map(Number);
-        return DATE.format(new Date(y, m - 1, d));
-    }
+    if (s.length === 10) return DATE.format(parseDate(s));
     return DATE.format(new Date(s));
-}
-
-function reduceError(error) {
-    if (Array.isArray(error?.body)) return error.body.map((e) => e.message).join(', ');
-    return error?.body?.message || error?.message || 'Unknown error';
 }
 
 /**
@@ -240,8 +233,7 @@ export default class SupplierUpdateReview extends LightningElement {
     handleLiveChanges(batch) {
         if (!this.data) return;
         const ids = new Set([this.recordId, ...this.data.updates.map((u) => u.Id)]);
-        const newUpdate = batch.some((c) => c.entity === 'Deliverable_Update__c' && c.changeType === 'CREATE' && c.payload.Deliverable__c === this.recordId);
-        if (touchesAny(batch, ids) || newUpdate) {
+        if (affects(batch, { ids, parentIds: new Set([this.recordId]) })) {
             notifyRecordUpdateAvailable([{ recordId: this.recordId }]);
             refreshApex(this.wiredResult);
         }

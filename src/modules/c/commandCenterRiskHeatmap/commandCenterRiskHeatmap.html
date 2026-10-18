@@ -7,17 +7,20 @@
                         <div key={row.key} class="heat-row" role="row">
                             <div class="axis-label slds-grid slds-grid_vertical-align-center" role="rowheader">{row.label}</div>
                             <template for:each={row.cells} for:item="cell">
-                                <button key={cell.key} class={cell.className} data-key={cell.key}
-                                    title={cell.label} aria-label={cell.label} onclick={handleCellClick}>
-                                    {cell.count}
-                                </button>
+                                <div key={cell.key} role="gridcell" class="cell-slot">
+                                    <button class={cell.className} data-key={cell.key}
+                                        title={cell.label} aria-label={cell.label} aria-pressed={cell.pressed} onclick={handleCellClick}>
+                                        {cell.count}
+                                    </button>
+                                </div>
                             </template>
                         </div>
                     </template>
-                    <div class="heat-row">
-                        <div class="axis-label slds-grid slds-grid_vertical-align-center"></div>
+                    <div class="heat-row" role="row">
+                        <div class="axis-label slds-grid slds-grid_vertical-align-center" role="gridcell"></div>
                         <template for:each={consequenceLabels} for:item="c">
-                            <div key={c.key} class="axis-label slds-grid slds-grid_vertical-align-center axis-label-bottom slds-grid_align-center slds-text-align_center">{c.level}<br />{c.label}</div>
+                            <div key={c.key} role="columnheader" aria-label={c.ariaLabel}
+                                class="axis-label slds-grid slds-grid_vertical-align-center axis-label-bottom slds-grid_align-center slds-text-align_center">{c.level}<br />{c.label}</div>
                         </template>
                     </div>
                 </div>
@@ -31,7 +34,7 @@
                     <ul class="slds-has-dividers_top-space slds-var-m-top_small">
                         <template for:each={selectedRisks} for:item="risk">
                             <li key={risk.id} class="slds-item">
-                                <a data-id={risk.id} onclick={handleRiskClick}>{risk.name}</a>
+                                <a href={risk.url} data-id={risk.id} onclick={handleRiskClick}>{risk.name}</a>
                                 <div class="slds-text-body_small slds-text-color_weak">{risk.meta}</div>
                             </li>
                         </template>
@@ -39,7 +42,7 @@
                 </template>
             </template>
             <template lwc:else>
-                <p class="slds-text-color_weak slds-var-p-vertical_small">No open risks on this account.</p>
+                <p class="slds-text-color_weak slds-var-p-vertical_small">{emptyMessage}</p>
             </template>
         </div>
     </lightning-card>

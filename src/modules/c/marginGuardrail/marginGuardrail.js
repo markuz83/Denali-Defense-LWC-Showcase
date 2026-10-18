@@ -5,6 +5,7 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import getContext from '@salesforce/apex/MarginGuardrailController.getContext';
 import submitForApproval from '@salesforce/apex/MarginGuardrailController.submitForApproval';
 import regenerateRationale from '@salesforce/apex/MarginGuardrailController.regenerateRationale';
+import { USD, USD_COMPACT, pctLabel as fmtPct, reduceError } from 'c/denaliFormat';
 
 import ESTIMATED_MARGIN from '@salesforce/schema/Opportunity.Estimated_Margin__c';
 import CONTRACT_TYPE from '@salesforce/schema/Opportunity.Contract_Type__c';
@@ -14,18 +15,6 @@ import LAST_MODIFIED from '@salesforce/schema/Opportunity.LastModifiedDate';
 
 // Fields whose changes should refresh the card (edits made elsewhere on the page).
 const WATCHED_FIELDS = [ESTIMATED_MARGIN, CONTRACT_TYPE, AMOUNT, APPROVAL_STATUS, LAST_MODIFIED];
-const USD = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
-const USD_COMPACT = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
-
-function fmtPct(v) {
-    return v === null || v === undefined ? '—' : `${Number(v).toFixed(1)}%`;
-}
-
-function reduceError(error) {
-    if (!error) return 'Unknown error';
-    if (Array.isArray(error.body)) return error.body.map((e) => e.message).join(', ');
-    return error.body?.message || error.message || 'Unknown error';
-}
 
 /**
  * Margin Guardrail for the Opportunity record page: estimated margin against the floor for the
@@ -153,7 +142,8 @@ export default class MarginGuardrail extends LightningElement {
 
     get wonLabel() {
         const n = this.ctx.wonCountSameType;
-        return `${fmtPct(this.ctx.avgWonMarginSameType)} avg on ${n} ${this.opp.Acquisition_Type__c || ''} win${n === 1 ? '' : 's'}`.replace('  ', ' ');
+        const type = this.opp.Acquisition_Type__c ? `${this.opp.Acquisition_Type__c} ` : '';
+        return `${fmtPct(this.ctx.avgWonMarginSameType)} avg on ${n} ${type}win${n === 1 ? '' : 's'}`;
     }
 
     get allWonLabel() {
@@ -251,7 +241,7 @@ export default class MarginGuardrail extends LightningElement {
             await submitForApproval({ opportunityId: this.recordId, approverId: this.approverId, comments: this.comments });
             this.toast('Submitted for pricing review', 'The approver has been notified.', 'success');
             this.comments = '';
-            await this.refreshAll();
+            await this.refreshRecord();
         } catch (e) {
             this.toast('Could not submit', reduceError(e), 'error');
         } finally {
@@ -282,7 +272,7 @@ export default class MarginGuardrail extends LightningElement {
         try {
             await regenerateRationale({ opportunityId: this.recordId });
             this.toast('Pricing rationale drafted', 'Review and edit it before submitting.', 'success');
-            await this.refreshAll();
+            await this.refreshRecord();
         } catch (e) {
             this.toast('Could not draft the rationale', reduceError(e), 'error');
         } finally {
@@ -292,9 +282,11 @@ export default class MarginGuardrail extends LightningElement {
 
     // ---------------------------------------------------------------- helpers
 
-    async refreshAll() {
+    // Both actions save the Opportunity. Telling LDS it changed refreshes the rest of the page, and
+    // the getRecord watcher above then sees the new LastModifiedDate and reloads the context, so
+    // there's no refreshApex here as well.
+    async refreshRecord() {
         await notifyRecordUpdateAvailable([{ recordId: this.recordId }]);
-        await refreshApex(this.contextResult);
     }
 
     toast(title, message, variant) {

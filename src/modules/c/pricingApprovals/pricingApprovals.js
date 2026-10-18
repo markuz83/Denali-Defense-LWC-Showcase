@@ -5,15 +5,9 @@ import { notifyRecordUpdateAvailable } from 'lightning/uiRecordApi';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import getMyApprovals from '@salesforce/apex/PricingApprovalsController.getMyApprovals';
 import decide from '@salesforce/apex/PricingApprovalsController.decide';
+import { LOCALE, USD, USD_COMPACT, recordUrl, reduceError } from 'c/denaliFormat';
 
-const USD = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
-const USD_COMPACT = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
-const DATE = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
-
-function reduceError(error) {
-    if (Array.isArray(error?.body)) return error.body.map((e) => e.message).join(', ');
-    return error?.body?.message || error?.message || 'Unknown error';
-}
+const DATE = new Intl.DateTimeFormat(LOCALE, { month: 'short', day: 'numeric' });
 
 /**
  * Approval requests waiting on the current user. Opportunity margin exceptions show the
@@ -67,6 +61,7 @@ export default class PricingApprovals extends NavigationMixin(LightningElement) 
                 key: a.workitemId,
                 workitemId: a.workitemId,
                 recordId: a.recordId,
+                url: recordUrl(a.recordId),
                 name: a.recordName,
                 isOpportunity: !!o,
                 meta: [a.objectType, a.submittedBy && `from ${a.submittedBy}`, a.submittedDate && DATE.format(new Date(a.submittedDate))]
@@ -95,6 +90,7 @@ export default class PricingApprovals extends NavigationMixin(LightningElement) 
     }
 
     handleOpen(event) {
+        event.preventDefault();
         this[NavigationMixin.Navigate]({
             type: 'standard__recordPage',
             attributes: { recordId: event.currentTarget.dataset.id, actionName: 'view' }

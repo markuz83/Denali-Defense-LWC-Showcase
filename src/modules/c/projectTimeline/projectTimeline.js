@@ -1,9 +1,8 @@
 import { LightningElement, api, wire } from 'lwc';
 import { refreshApex } from '@salesforce/apex';
 import getDeliverables from '@salesforce/apex/ProjectTimelineController.getDeliverables';
-import { subscribeToDeliveryChanges, touchesAny } from 'c/deliveryLiveUpdates';
-
-const USD_COMPACT = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
+import { subscribeToDeliveryChanges, affects } from 'c/deliveryLiveUpdates';
+import { USD_COMPACT, reduceError } from 'c/denaliFormat';
 
 /**
  * Project record page wrapper for the Command Center timeline: loads the project's
@@ -36,7 +35,7 @@ export default class ProjectTimeline extends LightningElement {
                     d.Supplier__r?.Name && `Supplier: ${d.Supplier__r.Name}`, d.Is_At_Risk__c && 'At risk'].filter(Boolean).join(' · ')
             }));
         } else if (error) {
-            this.error = error.body?.message || error.message;
+            this.error = reduceError(error);
         }
     }
 
@@ -65,8 +64,7 @@ export default class ProjectTimeline extends LightningElement {
     // This project's deliverables, or a deliverable newly added to it.
     handleLiveChanges(batch) {
         const ids = new Set(this.items.map((i) => i.id));
-        const added = batch.some((c) => c.entity === 'Deliverable__c' && c.changeType === 'CREATE' && c.payload.Project__c === this.recordId);
-        if (touchesAny(batch, ids) || added) {
+        if (affects(batch, { ids, parentIds: new Set([this.recordId]) })) {
             refreshApex(this.wiredResult);
         }
     }

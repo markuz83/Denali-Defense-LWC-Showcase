@@ -43,7 +43,10 @@
                     <div class="actions slds-var-m-top_small">
                         <lightning-button label="New Risk" class="action" stretch onclick={handleNewRisk}></lightning-button>
                         <lightning-button label="New Case" class="action" stretch onclick={handleNewCase}></lightning-button>
-                        <lightning-button label="Go to Account" class="action action_wide" stretch onclick={handleOpenAccount}></lightning-button>
+                        <!-- On an Account record page, the user is already on the account. -->
+                        <template lwc:if={showPicker}>
+                            <lightning-button label="Go to Account" class="action action_wide" stretch onclick={handleOpenAccount}></lightning-button>
+                        </template>
                     </div>
                 </div>
             </article>

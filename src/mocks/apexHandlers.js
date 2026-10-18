@@ -113,6 +113,10 @@ export const handlers = {
         return accountId ? updatesAwaitingReview(accountId) : [];
     },
 
+    'AccountCommandCenterController.getProjectIds'({ accountId }) {
+        return accountId ? state.projects.filter((p) => p.Account__c === accountId).map((p) => p.Id) : [];
+    },
+
     'AccountCommandCenterController.getSuppliers'({ accountId }) {
         return state.supplierAssignments.filter((s) => s.Account__c === accountId);
     },
@@ -277,7 +281,7 @@ export const handlers = {
         const dueBy = iso(new Date(Date.now() + 30 * 86400000));
         const active = state.projects.filter((p) => !['Complete', 'Cancelled'].includes(p.Status__c));
         const byProject = new Map();
-        const w = { projects: [], updatesToReview: [], dueSoon: [], risks: [] };
+        const w = { projects: [], deliverableIds: [], updatesToReview: [], dueSoon: [], risks: [] };
         active
             .slice()
             .sort((a, b) => (a.Target_End_Date__c || '9').localeCompare(b.Target_End_Date__c || '9'))
@@ -296,6 +300,7 @@ export const handlers = {
             .sort((a, b) => (a.Due_Date__c || '9').localeCompare(b.Due_Date__c || '9'))
             .forEach((d) => {
                 const s = byProject.get(d.Project__c);
+                w.deliverableIds.push(d.Id);
                 s.deliverables++;
                 if (d.Status__c === 'Complete') s.complete++;
                 if (d.Is_At_Risk__c) {
@@ -388,13 +393,14 @@ export const handlers = {
 /**
  * A supplier submits a new update on the blocked Sensor Fusion build: what the
  * "Simulate a supplier update" button does, standing in for the Supplier Portal.
- * Returns the change event the org's Change Data Capture would publish.
+ * Returns the change event the org's Change Data Capture would publish: a create carries the new
+ * record's fields, including the Project__c the Deliverable Update Intake flow stamps.
  */
 export function simulateSupplierUpdate() {
     const del = state.deliverables.find((d) => d.Name === 'Sensor Fusion Software Build 2.0');
     const n = ++state.updateSeq;
     const u = {
-        Id: sfId('a04', `sim-${n}`), Name: `DU-${String(n).padStart(5, '0')}`, Deliverable__c: del.Id,
+        Id: sfId('a04', `sim-${n}`), Name: `DU-${String(n).padStart(5, '0')}`, Deliverable__c: del.Id, Project__c: del.Project__c,
         Deliverable__r: { Name: del.Name, Project__c: del.Project__c }, Supplier__r: { Name: 'Ironbridge Systems' },
         Submitted_By__r: { Name: 'Luis Ortega' }, Submitted_Date__c: isoDateTime(0, new Date().getHours()),
         Reported_Status__c: 'In Progress', Percent_Complete__c: 65 + Math.min(n, 6) * 5,
@@ -403,5 +409,5 @@ export function simulateSupplierUpdate() {
         Next_Steps__c: 'Finish legacy feed adapter and rerun the field test.', Internal_Review_Status__c: 'Pending'
     };
     state.deliverableUpdates.push(u);
-    return { entityName: 'Deliverable_Update__c', changeType: 'CREATE', recordIds: [u.Id] };
+    return { entityName: 'Deliverable_Update__c', changeType: 'CREATE', recordIds: [u.Id], fields: { Deliverable__c: u.Deliverable__c, Project__c: u.Project__c } };
 }

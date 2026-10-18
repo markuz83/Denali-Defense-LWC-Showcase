@@ -1,5 +1,6 @@
 import { LightningElement, api } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
+import { parseDate as toDate } from 'c/denaliFormat';
 
 // The SVG is drawn at the container's measured pixel width (viewBox units = pixels), so text
 // and bars keep a constant size however wide the window is; wider just means more room.
@@ -17,13 +18,6 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 // Health -> CSS class; the colours are SLDS 2 styling hooks in commandCenterTimeline.css.
 const HEALTH_CLASS = { Green: 'health-green', Yellow: 'health-yellow', Red: 'health-red' };
 const NEUTRAL_CLASS = 'health-none';
-
-function toDate(value) {
-    if (!value) return null;
-    // Date fields arrive as 'YYYY-MM-DD'; parse as local dates so bars don't shift a day.
-    const [y, m, d] = String(value).substring(0, 10).split('-').map(Number);
-    return new Date(y, m - 1, d);
-}
 
 function truncate(text, max) {
     if (!text) return '';
@@ -214,6 +208,15 @@ export default class CommandCenterTimeline extends NavigationMixin(LightningElem
     }
     get groupLabelX() {
         return 4;
+    }
+
+    // Rows are links (role="link", tabindex="0"), so Enter opens them as it would a link; Space
+    // too, since a focused row doesn't look like a text link.
+    handleRowKeydown(event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            this.handleRowClick(event);
+        }
     }
 
     handleRowClick(event) {

@@ -1,17 +1,11 @@
 import { LightningElement, api, wire } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
 import getIntel from '@salesforce/apex/CompetitorIntelController.getIntel';
+import { LOCALE, USD_COMPACT, pctLabel, parseDate, recordUrl, reduceError } from 'c/denaliFormat';
 
-const USD_COMPACT = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
-const DATE = new Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric' });
-const pctLabel = (v) => (v === null || v === undefined ? '—' : `${Number(v).toFixed(1)}%`);
+const DATE = new Intl.DateTimeFormat(LOCALE, { month: 'short', year: 'numeric' });
 // For sentences: one decimal place, without a trailing ".0" (13.5%, 18%).
 const marginLabel = (v) => `${Number(Number(v).toFixed(1))}%`;
-
-function reduceError(error) {
-    if (Array.isArray(error?.body)) return error.body.map((e) => e.message).join(', ');
-    return error?.body?.message || error?.message || 'Unknown error';
-}
 
 /**
  * Our record against one competitor (the Opportunity's incumbent, or the competitor Account
@@ -129,10 +123,11 @@ export default class CompetitorIntel extends NavigationMixin(LightningElement) {
     get recent() {
         return this.intel.recent.map((h) => ({
             id: h.id,
+            url: recordUrl(h.id),
             name: h.name,
             outcome: h.won ? 'Won' : 'Lost',
             outcomeClass: h.won ? 'outcome outcome-won' : 'outcome outcome-lost',
-            meta: [h.closeDate && DATE.format(new Date(h.closeDate)), h.amount && USD_COMPACT.format(h.amount),
+            meta: [h.closeDate && DATE.format(parseDate(h.closeDate)), h.amount && USD_COMPACT.format(h.amount),
                 h.margin !== null && h.margin !== undefined && `${Number(h.margin).toFixed(0)}% margin`, h.lossReason]
                 .filter(Boolean)
                 .join(' · ')
@@ -140,6 +135,7 @@ export default class CompetitorIntel extends NavigationMixin(LightningElement) {
     }
 
     handleOpen(event) {
+        event.preventDefault();
         this[NavigationMixin.Navigate]({
             type: 'standard__recordPage',
             attributes: { recordId: event.currentTarget.dataset.id, actionName: 'view' }

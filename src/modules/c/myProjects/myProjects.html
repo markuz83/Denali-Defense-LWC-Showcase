@@ -34,7 +34,7 @@
                                     <li key={p.id} class="card">
                                         <div class="card-head slds-grid slds-grid_vertical-align-center">
                                             <c-health-dot value={p.health} size="xx-small" class="health"></c-health-dot>
-                                            <a data-id={p.id} onclick={handleOpen} class="slds-text-heading_small">{p.name}</a>
+                                            <a href={p.url} data-id={p.id} onclick={handleOpen} class="slds-text-heading_small">{p.name}</a>
                                         </div>
                                         <p class="slds-text-body_small slds-text-color_weak">{p.meta}</p>
                                         <div class="progress slds-scrollable_none"><div class="progress-fill" style={p.progressStyle}></div></div>
@@ -62,7 +62,7 @@
                             <ul class="list">
                                 <template for:each={updateItems} for:item="u">
                                     <li key={u.id} class="list-item">
-                                        <a data-id={u.deliverableId} onclick={handleOpen}>{u.title}</a>
+                                        <a href={u.url} data-id={u.deliverableId} onclick={handleOpen}>{u.title}</a>
                                         <div class="slds-text-body_small slds-text-color_weak">{u.meta}</div>
                                         <template lwc:if={u.flag}>
                                             <div class="slds-text-body_small slds-text-color_error">{u.flag}</div>
@@ -82,7 +82,7 @@
                                     <li key={d.id} class="list-item due">
                                         <c-health-dot value={d.health} size="xx-small" class="health"></c-health-dot>
                                         <div class="due-main slds-no-space">
-                                            <a data-id={d.id} onclick={handleOpen}>{d.name}</a>
+                                            <a href={d.url} data-id={d.id} onclick={handleOpen}>{d.name}</a>
                                             <div class="slds-text-body_small slds-text-color_weak">{d.meta}</div>
                                         </div>
                                         <span class={d.whenClass}>{d.when}</span>
@@ -100,7 +100,7 @@
                                 <template for:each={riskItems} for:item="r">
                                     <li key={r.id} class="list-item">
                                         <span class={r.severityClass}>{r.severity}</span>
-                                        <a data-id={r.id} onclick={handleOpen}>{r.name}</a>
+                                        <a href={r.url} data-id={r.id} onclick={handleOpen}>{r.name}</a>
                                         <div class="slds-text-body_small slds-text-color_weak">{r.meta}</div>
                                     </li>
                                 </template>

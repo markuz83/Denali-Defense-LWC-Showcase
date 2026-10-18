@@ -19,7 +19,7 @@ export async function subscribeToDeliveryChanges(onChanges, debounceMs = DEFAULT
     let enabled = false;
     try {
         enabled = await isEmpEnabled();
-    } catch (e) {
+    } catch {
         enabled = false;
     }
     if (!enabled) {
@@ -27,7 +27,6 @@ export async function subscribeToDeliveryChanges(onChanges, debounceMs = DEFAULT
     }
     if (!errorHandlerRegistered) {
         onError((error) => {
-            // eslint-disable-next-line no-console
             console.warn('Denali live updates: streaming error', JSON.stringify(error));
         });
         errorHandlerRegistered = true;
@@ -64,7 +63,33 @@ export async function subscribeToDeliveryChanges(onChanges, debounceMs = DEFAULT
     };
 }
 
-/** True when a change touches any of the given record Ids. */
-export function touchesAny(batch, ids) {
-    return batch.some((c) => c.recordIds.some((id) => ids.has(id)));
+// Lookups the flows stamp on these records (Deliverable_Defaults sets a deliverable's Account,
+// Deliverable_Update_Intake an update's Project), so a change event says where a record belongs.
+const PARENT_FIELDS = ['Account__c', 'Project__c', 'Deliverable__c'];
+
+/**
+ * A gap event (GAP_CREATE, GAP_UPDATE, ..., GAP_OVERFLOW) means Salesforce couldn't send the
+ * change itself, or dropped some changes under load: what changed isn't known, so reload.
+ */
+export function isGap(change) {
+    return String(change.changeType || '').startsWith('GAP_');
+}
+
+/**
+ * True when a batch can change what a component shows, so it should refresh:
+ * - a change to one of the records it shows (ids);
+ * - a record created under, or moved to, one of its parents (parentIds): the event payload's
+ *   Account__c, Project__c or Deliverable__c is one of them. An update event carries only the
+ *   fields that changed, so this matches a move but not an edit, which ids covers;
+ * - a gap event.
+ * Anything else (another account's or project's records) is ignored, so a busy org doesn't
+ * reload every open page on every change.
+ */
+export function affects(batch, { ids = new Set(), parentIds = new Set() } = {}) {
+    return batch.some(
+        (c) =>
+            isGap(c) ||
+            c.recordIds.some((id) => ids.has(id)) ||
+            PARENT_FIELDS.some((f) => c.payload && c.payload[f] && parentIds.has(c.payload[f]))
+    );
 }

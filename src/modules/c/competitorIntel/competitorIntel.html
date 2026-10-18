@@ -56,7 +56,7 @@
                             <li key={h.id} class="slds-item recent slds-grid slds-grid_vertical-align-start">
                                 <span class={h.outcomeClass}>{h.outcome}</span>
                                 <div>
-                                    <a data-id={h.id} onclick={handleOpen}>{h.name}</a>
+                                    <a href={h.url} data-id={h.id} onclick={handleOpen}>{h.name}</a>
                                     <div class="slds-text-body_small slds-text-color_weak">{h.meta}</div>
                                 </div>
                             </li>

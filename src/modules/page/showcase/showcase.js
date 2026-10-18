@@ -173,7 +173,8 @@ export default class Showcase extends LightningElement {
         const anchor = event.composedPath().find((el) => el.tagName === 'A');
         const href = anchor?.getAttribute('href');
         const match = href && href.match(RECORD_HREF);
-        if (!match) return;
+        // A link with data-id navigates through NavigationMixin, whose mock shows its own toast.
+        if (!match || anchor.dataset.id) return;
         event.preventDefault();
         Toast.show({
             label: 'Navigation',

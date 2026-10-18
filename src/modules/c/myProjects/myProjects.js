@@ -2,34 +2,14 @@ import { LightningElement, wire } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
 import { refreshApex } from '@salesforce/apex';
 import getMyWork from '@salesforce/apex/MyProjectsController.getMyWork';
-import { subscribeToDeliveryChanges } from 'c/deliveryLiveUpdates';
+import { subscribeToDeliveryChanges, affects } from 'c/deliveryLiveUpdates';
+import { LOCALE, USD_COMPACT, parseDate, daysUntil, recordUrl, reduceError } from 'c/denaliFormat';
 
-const USD_COMPACT = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
-const DATE = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-function parseDate(value) {
-    if (!value) return null;
-    const [y, m, d] = String(value).substring(0, 10).split('-').map(Number);
-    return new Date(y, m - 1, d);
-}
+const DATE = new Intl.DateTimeFormat(LOCALE, { month: 'short', day: 'numeric' });
 
 function fmtDate(value) {
     const d = parseDate(value);
     return d ? DATE.format(d) : '';
-}
-
-function daysFromToday(value) {
-    const d = parseDate(value);
-    if (!d) return null;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return Math.round((d - today) / DAY_MS);
-}
-
-function reduceError(error) {
-    if (Array.isArray(error?.body)) return error.body.map((e) => e.message).join(', ');
-    return error?.body?.message || error?.message || 'Unknown error';
 }
 
 /**
@@ -87,6 +67,7 @@ export default class MyProjects extends NavigationMixin(LightningElement) {
             if (p.Margin_Erosion__c < 0) chips.push({ key: 'margin', label: `Margin ${Number(p.Margin_Erosion__c).toFixed(1)} pts vs bid`, className: 'chip chip-orange' });
             return {
                 id: p.Id,
+                url: recordUrl(p.Id),
                 name: p.Name,
                 health: p.Health__c,
                 meta: [p.Account__r?.Name, p.Contract__r?.Award_Number__c, p.Status__c, p.Target_End_Date__c && `ends ${fmtDate(p.Target_End_Date__c)}`]
@@ -104,6 +85,7 @@ export default class MyProjects extends NavigationMixin(LightningElement) {
         return this.work.updatesToReview.map((u) => ({
             id: u.Id,
             deliverableId: u.Deliverable__c,
+            url: recordUrl(u.Deliverable__c),
             title: u.Deliverable__r?.Name,
             meta: [u.Supplier__r?.Name, u.Submitted_Date__c && `submitted ${DATE.format(new Date(u.Submitted_Date__c))}`,
                 u.Reported_Status__c, u.Percent_Complete__c !== null && u.Percent_Complete__c !== undefined && `${Math.round(u.Percent_Complete__c)}%`]
@@ -119,7 +101,7 @@ export default class MyProjects extends NavigationMixin(LightningElement) {
 
     get dueItems() {
         return this.work.dueSoon.map((d) => {
-            const days = daysFromToday(d.Due_Date__c);
+            const days = daysUntil(d.Due_Date__c);
             let when = fmtDate(d.Due_Date__c);
             let whenClass = 'when';
             if (days !== null && days < 0) {
@@ -134,6 +116,7 @@ export default class MyProjects extends NavigationMixin(LightningElement) {
                 : '';
             return {
                 id: d.Id,
+                url: recordUrl(d.Id),
                 name: d.Name,
                 health: d.Health__c,
                 when,
@@ -150,6 +133,7 @@ export default class MyProjects extends NavigationMixin(LightningElement) {
     get riskItems() {
         return this.work.risks.map((r) => ({
             id: r.Id,
+            url: recordUrl(r.Id),
             name: r.Name,
             severity: r.Severity__c || 'Unscored',
             severityClass: r.Severity__c === 'Critical' || r.Severity__c === 'High' ? 'sev sev-high' : 'sev',
@@ -164,6 +148,7 @@ export default class MyProjects extends NavigationMixin(LightningElement) {
     }
 
     handleOpen(event) {
+        event.preventDefault();
         this[NavigationMixin.Navigate]({
             type: 'standard__recordPage',
             attributes: { recordId: event.currentTarget.dataset.id, actionName: 'view' }
@@ -196,8 +181,14 @@ export default class MyProjects extends NavigationMixin(LightningElement) {
         }
     }
 
-    // Any deliverable or supplier update change can move these counts; the batch is debounced.
-    handleLiveChanges() {
-        refreshApex(this.wiredResult);
+    // A change to one of my projects' deliverables or their updates awaiting review, or a deliverable
+    // or update created on (or moved to) one of my projects.
+    handleLiveChanges(batch) {
+        if (!this.work) return;
+        const ids = new Set([...this.work.deliverableIds, ...this.work.updatesToReview.map((u) => u.Id)]);
+        const parentIds = new Set(this.work.projects.map((s) => s.project.Id));
+        if (affects(batch, { ids, parentIds })) {
+            refreshApex(this.wiredResult);
+        }
     }
 }

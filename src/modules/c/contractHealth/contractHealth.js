@@ -1,24 +1,7 @@
 import { LightningElement, api, wire } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
 import getHealth from '@salesforce/apex/ContractHealthController.getHealth';
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-const USD_COMPACT = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
-const money = (v) => USD_COMPACT.format(v || 0);
-const pctLabel = (v) => (v === null || v === undefined ? '—' : `${Number(v).toFixed(1)}%`);
-
-function daysUntil(dateStr) {
-    if (!dateStr) return null;
-    const [y, m, d] = dateStr.split('-').map(Number);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return Math.round((new Date(y, m - 1, d) - today) / DAY_MS);
-}
-
-function reduceError(error) {
-    if (Array.isArray(error?.body)) return error.body.map((e) => e.message).join(', ');
-    return error?.body?.message || error?.message || 'Unknown error';
-}
+import { money, pctLabel, daysUntil, recordUrl, reduceError } from 'c/denaliFormat';
 
 /**
  * Contract Health for the Contract record page: funding and recognition, margin at award vs
@@ -147,6 +130,7 @@ export default class ContractHealth extends NavigationMixin(LightningElement) {
     get projects() {
         return this.h.projects.map((p) => ({
             id: p.Id,
+            url: recordUrl(p.Id),
             name: p.Name,
             health: p.Health__c,
             meta: [p.Status__c, p.Percent_Complete__c !== null && p.Percent_Complete__c !== undefined && `${Math.round(p.Percent_Complete__c)}% done`,
@@ -158,6 +142,7 @@ export default class ContractHealth extends NavigationMixin(LightningElement) {
     }
 
     handleOpen(event) {
+        event.preventDefault();
         this[NavigationMixin.Navigate]({
             type: 'standard__recordPage',
             attributes: { recordId: event.currentTarget.dataset.id, actionName: 'view' }

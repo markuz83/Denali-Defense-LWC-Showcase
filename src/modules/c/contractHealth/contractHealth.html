@@ -54,7 +54,7 @@
                             <li key={p.id} class="slds-item project slds-grid slds-grid_vertical-align-start">
                                 <c-health-dot value={p.health} size="xx-small" class="health"></c-health-dot>
                                 <div class="project-main">
-                                    <a data-id={p.id} onclick={handleOpen}>{p.name}</a>
+                                    <a href={p.url} data-id={p.id} onclick={handleOpen}>{p.name}</a>
                                     <div class="slds-text-body_small slds-text-color_weak">{p.meta}</div>
                                 </div>
                                 <div class="project-margin slds-text-align_right slds-text-body_small">

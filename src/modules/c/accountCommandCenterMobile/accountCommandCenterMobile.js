@@ -4,26 +4,11 @@ import { encodeDefaultFieldValues } from 'lightning/pageReferenceUtils';
 import { refreshApex } from '@salesforce/apex';
 import getData from '@salesforce/apex/AccountCommandCenterController.getData';
 import getPickerAccounts from '@salesforce/apex/AccountCommandCenterController.getPickerAccounts';
-import { url, pct, reduceError } from 'c/accountSectionUtils';
+import { url, reduceError } from 'c/accountSectionUtils';
+import { money, daysUntil } from 'c/denaliFormat';
+import { healthBadgeClass, healthLabel, kpiTiles, contractCard, caseTitle, isSevereCase } from 'c/commandCenterModel';
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-const COMPACT_USD = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    notation: 'compact',
-    maximumFractionDigits: 1
-});
-const PERCENT = new Intl.NumberFormat('en-US', { style: 'percent', maximumFractionDigits: 1 });
-const money = (v) => COMPACT_USD.format(v || 0);
 const TOP_RISKS = 5;
-
-function daysUntil(dateStr) {
-    if (!dateStr) return null;
-    const [y, m, d] = dateStr.split('-').map(Number);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return Math.round((new Date(y, m - 1, d) - today) / DAY_MS);
-}
 
 function dueText(dateStr) {
     const days = daysUntil(dateStr);
@@ -48,6 +33,11 @@ export default class AccountCommandCenterMobile extends NavigationMixin(Lightnin
     error;
     wiredResult;
     accountOptions;
+    // Set when an account's data first arrives, not in a getter: lightning-accordion reopens
+    // whatever active-section-name holds each time it gets a new value, so a new array every
+    // render would undo the sections the user opened or closed whenever they pressed Refresh.
+    openSections = [];
+    sectionsAccountId;
 
     @api
     get recordId() {
@@ -64,6 +54,10 @@ export default class AccountCommandCenterMobile extends NavigationMixin(Lightnin
         if (result.data) {
             this.data = result.data;
             this.error = undefined;
+            if (this.data.account && this.data.account.Id !== this.sectionsAccountId) {
+                this.sectionsAccountId = this.data.account.Id;
+                this.openSections = this.defaultOpenSections();
+            }
         } else if (result.error) {
             this.error = reduceError(result.error);
             this.data = undefined;
@@ -119,15 +113,11 @@ export default class AccountCommandCenterMobile extends NavigationMixin(Lightnin
     }
 
     get healthBadgeClass() {
-        const h = this.account.Customer_Health__c;
-        if (h === 'Red') return 'slds-theme_error';
-        if (h === 'Yellow') return 'slds-theme_warning';
-        if (h === 'Green') return 'slds-theme_success';
-        return '';
+        return healthBadgeClass(this.account.Customer_Health__c);
     }
 
     get healthLabel() {
-        return this.account.Customer_Health__c ? `Health: ${this.account.Customer_Health__c}` : 'Health not set';
+        return healthLabel(this.account.Customer_Health__c);
     }
 
     get subtitle() {
@@ -137,36 +127,15 @@ export default class AccountCommandCenterMobile extends NavigationMixin(Lightnin
     }
 
     // Open the sections that have something to act on.
-    get openSections() {
-        const open = ['contracts'];
-        if (this.attentionItems.length) open.unshift('attention');
-        return open;
+    defaultOpenSections() {
+        return this.hasAttention ? ['attention', 'contracts'] : ['contracts'];
     }
 
     // ---------------------------------------------------------------- KPIs
 
+    // Six tiles, two per row: Revenue Accepted is left out on phones.
     get kpis() {
-        const k = this.data.kpis;
-        return [
-            { key: 'acv', label: 'Active Contract Value', value: money(k.activeContractValue), sub: 'Activated contracts' },
-            { key: 'backlog', label: 'Backlog', value: money(k.backlog), sub: 'Not yet recognized' },
-            {
-                key: 'risk',
-                label: 'Revenue at Risk',
-                value: money(k.revenueAtRisk),
-                sub: `${k.atRiskDeliverables} at-risk deliverable${k.atRiskDeliverables === 1 ? '' : 's'}`,
-                alert: k.revenueAtRisk > 0
-            },
-            { key: 'risks', label: 'Open Risks', value: String(k.openRisks), sub: `${k.highRisks} high or critical`, alert: k.highRisks > 0 },
-            { key: 'cases', label: 'Open Cases', value: String(k.openCases), sub: `${k.severeCases} Sev 1/2`, alert: k.severeCases > 0 },
-            {
-                key: 'updates',
-                label: 'Updates to Review',
-                value: String(k.updatesAwaitingReview),
-                sub: `${k.overdueDeliverables} overdue deliverable${k.overdueDeliverables === 1 ? '' : 's'}`,
-                alert: k.overdueDeliverables > 0
-            }
-        ].map((t) => ({ ...t, className: t.alert ? 'kpi kpi-alert' : 'kpi' }));
+        return kpiTiles(this.data.kpis).filter((t) => t.key !== 'accepted');
     }
 
     // ---------------------------------------------------------------- needs attention
@@ -200,47 +169,8 @@ export default class AccountCommandCenterMobile extends NavigationMixin(Lightnin
 
     get contractCards() {
         return this.data.contracts.map((c) => {
-            const value = c.Contract_Value__c || 0;
-            const recognized = Math.min(c.Revenue_Recognized__c || 0, value);
-            const fundedOpen = Math.max(Math.min(c.Funded_Value__c || 0, value) - recognized, 0);
-            const share = (v) => (value ? Math.round((v / value) * 1000) / 10 : 0);
-            const days = c.Status === 'Activated' ? daysUntil(c.Next_Option_Date__c) : null;
-            let optionLabel = null;
-            let optionClass = '';
-            if (days !== null) {
-                if (days < 0) {
-                    optionLabel = 'Option date passed';
-                    optionClass = 'slds-theme_shade';
-                } else {
-                    optionLabel = `Option decision in ${days} day${days === 1 ? '' : 's'}`;
-                    optionClass = days <= 60 ? 'slds-theme_error' : days <= 120 ? 'slds-theme_warning' : 'slds-theme_success';
-                }
-            }
-            const variance = c.Margin_Variance__c;
-            const hasMargin = c.Original_Margin__c !== null && c.Original_Margin__c !== undefined;
-            return {
-                id: c.Id,
-                url: url(c.Id),
-                title: c.Award_Number__c || c.ContractNumber,
-                subtitle: [c.Contract_Type__c, c.Current_Period__c].filter(Boolean).join(' · '),
-                status: c.Status,
-                statusClass: c.Status === 'Activated' ? 'slds-theme_success' : '',
-                value: money(value),
-                recognized: money(recognized),
-                fundedOpen: money(fundedOpen),
-                unfunded: money(value - recognized - fundedOpen),
-                recognizedStyle: `width:${share(recognized)}%`,
-                fundedStyle: `width:${share(fundedOpen)}%`,
-                hasMargin,
-                marginText: hasMargin
-                    ? `Margin ${PERCENT.format(pct(c.Original_Margin__c) || 0)} at award → ${
-                        c.Current_Margin__c === null || c.Current_Margin__c === undefined ? '—' : PERCENT.format(pct(c.Current_Margin__c))} forecast`
-                    : '',
-                varianceText: variance === null || variance === undefined ? '' : ` (${variance >= 0 ? '+' : ''}${Number(variance).toFixed(1)} pts)`,
-                varianceClass: variance < 0 ? 'slds-text-color_error' : 'slds-text-color_success',
-                optionLabel,
-                optionClass
-            };
+            const card = contractCard(c);
+            return { ...card, subtitle: card.shortSubtitle };
         });
     }
 
@@ -324,9 +254,9 @@ export default class AccountCommandCenterMobile extends NavigationMixin(Lightnin
         return this.data.cases.map((c) => ({
             id: c.Id,
             url: url(c.Id),
-            name: `${c.CaseNumber} · ${c.Subject}`,
+            name: caseTitle(c),
             severity: c.Severity__c,
-            severityClass: /^Sev [12]/.test(c.Severity__c || '') ? 'slds-text-color_error' : '',
+            severityClass: isSevereCase(c.Severity__c) ? 'slds-text-color_error' : '',
             detail: [c.IsEscalated ? `${c.Status} (escalated)` : c.Status, c.Deliverable__r?.Name].filter(Boolean).join(' · ')
         }));
     }

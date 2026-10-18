@@ -7,6 +7,9 @@
             <template lwc:if={error}>
                 <p class="slds-text-color_error">{error}</p>
             </template>
+            <template lwc:if={notFound}>
+                <p class="slds-text-color_weak">This case couldn't be loaded. It may have been deleted, or it isn't shared with you.</p>
+            </template>
             <template lwc:if={noUpstream}>
                 <p class="slds-text-color_weak">This case isn't linked to a Deliverable, Project or Service Engagement with a contract. Link one to see what it puts at risk.</p>
             </template>
@@ -19,7 +22,7 @@
                             <span class={n.dotClass}></span>
                             <div class="node-body slds-no-space">
                                 <div class="kind">{n.kind}</div>
-                                <a data-id={n.id} onclick={handleOpen} class="node-name">{n.name}</a>
+                                <a href={n.url} data-id={n.id} onclick={handleOpen} class="node-name">{n.name}</a>
                                 <template for:each={n.lines} for:item="line">
                                     <div key={line.key} class="slds-text-body_small slds-text-color_weak">{line.text}</div>
                                 </template>
@@ -33,7 +36,7 @@
                     <ul class="slds-has-dividers_top-space">
                         <template for:each={risks} for:item="r">
                             <li key={r.id} class="slds-item">
-                                <a data-id={r.id} onclick={handleOpen}>{r.name}</a>
+                                <a href={r.url} data-id={r.id} onclick={handleOpen}>{r.name}</a>
                                 <div class="slds-text-body_small slds-text-color_weak">{r.meta}</div>
                             </li>
                         </template>

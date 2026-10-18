@@ -12,7 +12,7 @@
                         <span class="legend-item today">│ today</span>
                     </div>
                     <svg class="timeline" viewBox={viewBox} width={width} height={svgHeight}
-                        role="img" aria-label={title}>
+                        role="group" aria-label={title}>
                         <g class="axis">
                             <template for:each={ticks} for:item="tick">
                                 <g key={tick.key}>
@@ -28,7 +28,8 @@
                             </g>
                         </template>
                         <template for:each={rows} for:item="row">
-                            <g key={row.key} class="row" data-id={row.id} onclick={handleRowClick}>
+                            <g key={row.key} class="row" data-id={row.id} role="link" tabindex="0" aria-label={row.tooltip}
+                                onclick={handleRowClick} onkeydown={handleRowKeydown}>
                                 <title>{row.tooltip}</title>
                                 <rect x="0" y={row.hitY} width={width} height="24" class="row-hit"></rect>
                                 <text x={labelX} y={row.labelY} class="row-label">{row.label}</text>

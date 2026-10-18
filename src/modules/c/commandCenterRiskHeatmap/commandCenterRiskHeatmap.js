@@ -1,5 +1,6 @@
 import { LightningElement, api } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
+import { recordUrl } from 'c/denaliFormat';
 
 const LIKELIHOOD = ['5 - Near Certainty', '4 - Highly Likely', '3 - Likely', '2 - Low Likelihood', '1 - Not Likely'];
 const CONSEQUENCE = ['1 - Minimal', '2 - Minor', '3 - Moderate', '4 - Significant', '5 - Severe'];
@@ -24,6 +25,7 @@ function band(score) {
 export default class CommandCenterRiskHeatmap extends NavigationMixin(LightningElement) {
     @api title = 'Risk Heat Map';
     @api risks = [];
+    @api emptyMessage = 'No open risks.';
     selectedKey = null;
 
     get grid() {
@@ -44,9 +46,11 @@ export default class CommandCenterRiskHeatmap extends NavigationMixin(LightningE
                     const count = counts.get(key) || 0;
                     const classes = ['cell', `cell-${band(l * c)}`];
                     if (count) classes.push('cell-filled');
-                    if (key === this.selectedKey) classes.push('cell-selected');
+                    const pressed = key === this.selectedKey;
+                    if (pressed) classes.push('cell-selected');
                     return {
                         key,
+                        pressed: String(pressed),
                         count: count || '',
                         className: classes.join(' '),
                         label: `Likelihood ${lLabel}, consequence ${cLabel}: ${count} risk${count === 1 ? '' : 's'}`
@@ -57,7 +61,7 @@ export default class CommandCenterRiskHeatmap extends NavigationMixin(LightningE
     }
 
     get consequenceLabels() {
-        return CONSEQUENCE.map((c) => ({ key: c, label: c.replace(/^\d - /, ''), level: level(c) }));
+        return CONSEQUENCE.map((c) => ({ key: c, label: c.replace(/^\d - /, ''), level: level(c), ariaLabel: `Consequence ${c}` }));
     }
 
     get unscored() {
@@ -80,6 +84,7 @@ export default class CommandCenterRiskHeatmap extends NavigationMixin(LightningE
             : (this.risks || []).filter((r) => `${level(r.Likelihood__c)}-${level(r.Consequence__c)}` === this.selectedKey);
         return list.map((r) => ({
             id: r.Id,
+            url: recordUrl(r.Id),
             name: r.Name,
             meta: [r.Severity__c, r.Status__c, r.Deliverable__r?.Name || r.Project__r?.Name].filter(Boolean).join(' · ')
         }));
@@ -103,6 +108,7 @@ export default class CommandCenterRiskHeatmap extends NavigationMixin(LightningE
     }
 
     handleRiskClick(event) {
+        event.preventDefault();
         this[NavigationMixin.Navigate]({
             type: 'standard__recordPage',
             attributes: { recordId: event.currentTarget.dataset.id, actionName: 'view' }

@@ -17,7 +17,12 @@
     line-height: 1.1;
 }
 
+.cell-slot {
+    display: flex;
+}
+
 .cell {
+    flex: 1;
     border: 0;
     border-radius: var(--slds-g-radius-border-1, 0.25rem);
     min-height: var(--slds-g-sizing-9, 2rem);

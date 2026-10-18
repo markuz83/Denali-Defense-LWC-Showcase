@@ -1,35 +1,27 @@
 import { LightningElement, api, wire } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
+import { getRecord } from 'lightning/uiRecordApi';
+import { refreshApex } from '@salesforce/apex';
 import getChain from '@salesforce/apex/ImpactChainController.getChain';
+import DELIVERABLE from '@salesforce/schema/Case.Deliverable__c';
+import PROJECT from '@salesforce/schema/Case.Project__c';
+import SERVICE_ENGAGEMENT from '@salesforce/schema/Case.Service_Engagement__c';
+import LAST_MODIFIED from '@salesforce/schema/Case.LastModifiedDate';
+import { LOCALE, USD_COMPACT, parseDate, daysUntil, recordUrl, reduceError } from 'c/denaliFormat';
 
-const USD_COMPACT = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
-const DATE = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-const DAY_MS = 24 * 60 * 60 * 1000;
+const DATE = new Intl.DateTimeFormat(LOCALE, { month: 'short', day: 'numeric', year: 'numeric' });
 const HEALTH_DOT = { Green: 'dot dot-green', Yellow: 'dot dot-yellow', Red: 'dot dot-red' };
 const money = (v) => (v === null || v === undefined ? null : USD_COMPACT.format(v));
 
-function toDate(value) {
-    const [y, m, d] = String(value).substring(0, 10).split('-').map(Number);
-    return new Date(y, m - 1, d);
-}
-
 function fmtDate(value) {
-    return value ? DATE.format(toDate(value)) : null;
+    return value ? DATE.format(parseDate(value)) : null;
 }
 
-function daysUntil(value) {
-    if (!value) return null;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return Math.round((toDate(value) - today) / DAY_MS);
-}
+// The lookups the chain follows, and LastModifiedDate to catch any other edit to the case
+// (severity, status) shown in the headline.
+const WATCHED_FIELDS = [DELIVERABLE, PROJECT, SERVICE_ENGAGEMENT, LAST_MODIFIED];
 
 const isSevere = (severity) => /^Sev [12]/.test(severity || '');
-
-function reduceError(error) {
-    if (Array.isArray(error?.body)) return error.body.map((e) => e.message).join(', ');
-    return error?.body?.message || error?.message || 'Unknown error';
-}
 
 /**
  * What this case puts at risk upstream: Case -> Deliverable -> Project -> Contract, the
@@ -41,9 +33,24 @@ export default class ImpactChain extends NavigationMixin(LightningElement) {
     chain;
     error;
     loaded = false;
+    wiredResult;
+    lastModified;
+
+    // Linking a Deliverable (or any other edit) on the same page changes the chain, but the Apex
+    // result is cached; reload it when the case changes, as marginGuardrail does.
+    @wire(getRecord, { recordId: '$recordId', fields: WATCHED_FIELDS })
+    watchRecord({ data }) {
+        const stamp = data?.fields?.LastModifiedDate?.value;
+        if (stamp && this.lastModified && stamp !== this.lastModified && this.wiredResult) {
+            refreshApex(this.wiredResult);
+        }
+        if (stamp) this.lastModified = stamp;
+    }
 
     @wire(getChain, { caseId: '$recordId' })
-    wired({ data, error }) {
+    wired(result) {
+        this.wiredResult = result;
+        const { data, error } = result;
         if (data !== undefined) {
             this.chain = data;
             this.error = undefined;
@@ -60,6 +67,11 @@ export default class ImpactChain extends NavigationMixin(LightningElement) {
 
     get hasUpstream() {
         return !!(this.chain && (this.chain.deliverable || this.chain.project || this.chain.contract));
+    }
+
+    // getChain returns null when the case can't be read (deleted, or not shared with the user).
+    get notFound() {
+        return this.loaded && !this.error && !this.chain;
     }
 
     get noUpstream() {
@@ -170,6 +182,7 @@ export default class ImpactChain extends NavigationMixin(LightningElement) {
         }
         return nodes.map((n, i) => ({
             ...n,
+            url: recordUrl(n.id),
             lines: n.lines.filter(Boolean).map((text, j) => ({ key: `${n.key}-${j}`, text })),
             nodeClass: i === nodes.length - 1 ? 'node node-last' : 'node'
         }));
@@ -182,12 +195,14 @@ export default class ImpactChain extends NavigationMixin(LightningElement) {
     get risks() {
         return this.chain.risks.map((r) => ({
             id: r.Id,
+            url: recordUrl(r.Id),
             name: r.Name,
             meta: [r.Severity__c || 'Unscored', r.Status__c, r.Risk_Category__c].filter(Boolean).join(' · ')
         }));
     }
 
     handleOpen(event) {
+        event.preventDefault();
         this[NavigationMixin.Navigate]({
             type: 'standard__recordPage',
             attributes: { recordId: event.currentTarget.dataset.id, actionName: 'view' }

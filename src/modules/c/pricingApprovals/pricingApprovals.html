@@ -17,7 +17,7 @@
                     <template for:each={cards} for:item="card">
                         <li key={card.key} class="item">
                             <div class="item-head slds-grid slds-grid_align-spread">
-                                <a data-id={card.recordId} onclick={handleOpen} class="slds-text-heading_small">{card.name}</a>
+                                <a href={card.url} data-id={card.recordId} onclick={handleOpen} class="slds-text-heading_small">{card.name}</a>
                                 <template lwc:if={card.gapLabel}>
                                     <span class="gap">{card.gapLabel}</span>
                                 </template>

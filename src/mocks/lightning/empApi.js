@@ -31,10 +31,13 @@ export function unsubscribe(subscription, callback) {
     return Promise.resolve(true);
 }
 
-/** Delivers a change event ({ entityName, changeType, recordIds }) to its CDC channel. */
-export function publishChange({ entityName, changeType, recordIds }) {
+/**
+ * Delivers a change event ({ entityName, changeType, recordIds, fields }) to its CDC channel. As in
+ * a real event, the payload carries the record's fields next to the header.
+ */
+export function publishChange({ entityName, changeType, recordIds, fields = {} }) {
     const channel = `/data/${entityName.replace(/__c$/, '__')}ChangeEvent`;
-    const message = { channel, data: { payload: { ChangeEventHeader: { entityName, changeType, recordIds } } } };
+    const message = { channel, data: { payload: { ChangeEventHeader: { entityName, changeType, recordIds }, ...fields } } };
     try {
         subscribers.get(channel)?.forEach((s) => s.onMessage(message));
     } catch (e) {

@@ -37,7 +37,17 @@
     fill: transparent;
 }
 
-.row:hover .row-hit {
+.row:focus {
+    outline: none;
+}
+
+.row:focus-visible .row-hit {
+    stroke: var(--slds-g-color-accent-1, #066afe);
+    stroke-width: 2;
+}
+
+.row:hover .row-hit,
+.row:focus .row-hit {
     fill: var(--slds-g-color-surface-container-2, #f3f3f3);
 }
 

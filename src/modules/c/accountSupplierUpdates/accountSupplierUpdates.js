@@ -1,7 +1,8 @@
 import { LightningElement, api, wire } from 'lwc';
 import { refreshApex } from '@salesforce/apex';
 import getUpdatesAwaitingReview from '@salesforce/apex/AccountCommandCenterController.getUpdatesAwaitingReview';
-import { subscribeToDeliveryChanges, touchesAny } from 'c/deliveryLiveUpdates';
+import getProjectIds from '@salesforce/apex/AccountCommandCenterController.getProjectIds';
+import { subscribeToDeliveryChanges, affects } from 'c/deliveryLiveUpdates';
 import { url, pct, reduceError } from 'c/accountSectionUtils';
 
 const COLUMNS = [
@@ -25,6 +26,7 @@ export default class AccountSupplierUpdates extends LightningElement {
     loaded = false;
     error;
     wiredResult;
+    projectIds = [];
 
     @wire(getUpdatesAwaitingReview, { accountId: '$recordId' })
     wired(result) {
@@ -48,6 +50,11 @@ export default class AccountSupplierUpdates extends LightningElement {
             this.rows = [];
             this.loaded = true;
         }
+    }
+
+    @wire(getProjectIds, { accountId: '$recordId' })
+    wiredProjects({ data }) {
+        if (data) this.projectIds = data;
     }
 
     get hasRows() {
@@ -77,10 +84,10 @@ export default class AccountSupplierUpdates extends LightningElement {
         }
     }
 
-    // An update in the list changed (reviewed, say), or a new one was submitted (it may be for this account).
+    // An update in the list changed (reviewed, say), or one was submitted on this account's projects.
     handleLiveChanges(batch) {
         const ids = new Set(this.rows.map((r) => r.id));
-        if (touchesAny(batch, ids) || batch.some((c) => c.changeType === 'CREATE')) {
+        if (affects(batch, { ids, parentIds: new Set(this.projectIds) })) {
             refreshApex(this.wiredResult);
         }
     }
