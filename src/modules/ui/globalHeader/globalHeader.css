@@ -1,5 +1,31 @@
 .lightning-layout_custom {
     --_slds-c-globalheader-color-background: var(--slds-g-color-surface-container-1, #ffffff);
+    /* Lets the actions and search drop to rows of their own rather than run off the screen,
+       growing past SLDS's fixed header height when they do. */
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 3.125rem;
+}
+
+/* When room runs short (a narrow window or browser zoom), the search box gives way first:
+   SLDS gives it a fixed 440px minimum, which pushed the action icons off the right edge. */
+.search-item {
+    min-width: 0;
+    flex: 1 1 12rem;
+}
+
+/* On the narrowest screens the action icons themselves wrap rather than overflow. */
+.actions-item {
+    min-width: 0;
+    max-width: 100%;
+}
+
+@media (max-width: 40em) {
+    .search-item {
+        order: 1;
+        flex-basis: 100%;
+        padding-block-end: var(--slds-g-spacing-2, 0.5rem);
+    }
 }
 
 .lightning-button-icon_custom,

@@ -81,8 +81,8 @@
         <template lwc:if={isStandard}>
             <nav class="slds-context-bar__secondary" role="navigation" aria-label="App navigation">
                 <ul class="slds-grid slds-container_fluid">
-                    <template for:each={navItemsWithActive} for:item="item">
-                        <li key={item.page} class={item.tabClass}>
+                    <template for:each={visibleNavItems} for:item="item">
+                        <li key={item.page} class={item.tabClass} data-page={item.page}>
                             <a
                                 href={item.href}
                                 class="slds-context-bar__label-action"
@@ -95,6 +95,32 @@
                             </a>
                         </li>
                     </template>
+                    <!-- Tabs that don't fit the bar (a narrow window or zoomed-in text) move into More. -->
+                    <li class={moreTriggerClass} lwc:if={hasOverflow} data-more onfocusout={handleMoreFocusOut}
+                        onkeydown={handleMoreKeydown}>
+                        <button class="slds-context-bar__label-action more-button" aria-expanded={moreAriaExpanded}
+                            onclick={handleMoreToggle}>
+                            <span class="slds-assistive-text" lwc:if={isActiveInOverflow}>Current Page is in </span>
+                            <span>More</span>
+                            <lightning-icon icon-name="utility:chevrondown" size="xx-small"
+                                class="slds-m-left_xx-small"></lightning-icon>
+                        </button>
+                        <div class="slds-dropdown slds-dropdown_right" lwc:if={isMoreOpen}>
+                            <ul class="slds-dropdown__list">
+                                <template for:each={overflowNavItems} for:item="item">
+                                    <li key={item.page} class="slds-dropdown__item">
+                                        <a
+                                            href={item.href}
+                                            aria-current={item.ariaCurrent}
+                                            data-page={item.page}
+                                            onclick={handleOverflowItemClick}>
+                                            <span class="slds-truncate" title={item.label}>{item.label}</span>
+                                        </a>
+                                    </li>
+                                </template>
+                            </ul>
+                        </div>
+                    </li>
                 </ul>
             </nav>
         </template>

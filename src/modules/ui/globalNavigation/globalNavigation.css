@@ -2,7 +2,30 @@ lightning-button-icon {
     --slds-c-icon-color-foreground-default: var(--slds-g-color-accent-1, #0176d3);
 }
 
-button[role="tab"] {
+/* When the bar is too narrow for the app name and More side by side (high browser zoom),
+   the tab strip wraps onto its own row instead of being cut off. */
+.slds-context-bar {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 2.5rem;
+}
+
+.slds-context-bar__secondary {
+    min-width: 6rem;
+}
+
+/* Tabs keep their natural width (they're measured to decide what moves into More). */
+.slds-context-bar__secondary .slds-context-bar__item {
+    flex-shrink: 0;
+}
+
+.more-button {
+    display: flex;
+    align-items: center;
+}
+
+button[role="tab"],
+.more-button {
     border: none;
     background: none;
     font: inherit;
