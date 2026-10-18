@@ -1,9 +1,9 @@
 /**
  * Pre-compiles LWC icon SVG HTML templates into bundled JS modules.
  *
- * Instead of Vite serving 1,614 individual .html files through its transform
+ * Instead of Vite serving 1,727 individual .html files through its transform
  * pipeline at runtime (which is extremely slow in cloud environments), this
- * script compiles them ahead of time into 4 single JS files — one per icon set.
+ * script compiles them ahead of time into 5 single JS files — one per icon set.
  *
  * Usage: node scripts/prebuild-icons.mjs
  */
@@ -31,6 +31,11 @@ const ICON_SETS = [
         name: 'action',
         dir: 'node_modules/lightning-base-components/src/lightning/iconSvgTemplatesAction/buildTemplates/action',
         output: 'src/build/generated/iconSvgAction.js',
+    },
+    {
+        name: 'custom',
+        dir: 'node_modules/lightning-base-components/src/lightning/iconSvgTemplatesCustom/buildTemplates/custom',
+        output: 'src/build/generated/iconSvgCustom.js',
     },
 ];
 

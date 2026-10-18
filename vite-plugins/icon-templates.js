@@ -40,8 +40,8 @@ export const iconTemplateAliases = {
   'lightning/iconSvgTemplatesUtilityRtl': path.join(srcLightning, 'iconSvgTemplatesUtility/iconSvgTemplatesUtility.js'),
   'lightning/iconSvgTemplatesDoctypeRtl': path.join(srcLightning, 'iconSvgTemplatesDoctype/iconSvgTemplatesDoctype.js'),
   'lightning/iconSvgTemplatesActionRtl': path.join(srcLightning, 'iconSvgTemplatesAction/iconSvgTemplatesAction.js'),
-  'lightning/iconSvgTemplatesCustom': path.join(srcLightning, 'iconSvgTemplatesStandard/iconSvgTemplatesStandard.js'),
-  'lightning/iconSvgTemplatesCustomRtl': path.join(srcLightning, 'iconSvgTemplatesStandard/iconSvgTemplatesStandard.js'),
+  'lightning/iconSvgTemplatesCustom': path.join(srcLightning, 'iconSvgTemplatesCustom/iconSvgTemplatesCustom.js'),
+  'lightning/iconSvgTemplatesCustomRtl': path.join(srcLightning, 'iconSvgTemplatesCustom/iconSvgTemplatesCustom.js'),
   'lightning/iconSvgTemplates': path.join(srcLightning, 'iconSvgTemplatesStandard/iconSvgTemplatesStandard.js'),
   'lightning/iconSvgTemplatesRtl': path.join(srcLightning, 'iconSvgTemplatesStandard/iconSvgTemplatesStandard.js'),
 };
@@ -51,6 +51,7 @@ const BUNDLE_BY_IMPORTER_KEY = [
   ['iconSvgTemplatesUtility', path.join(srcLightning, 'iconSvgTemplatesUtility/iconSvgTemplatesUtility.js')],
   ['iconSvgTemplatesDoctype', path.join(srcLightning, 'iconSvgTemplatesDoctype/iconSvgTemplatesDoctype.js')],
   ['iconSvgTemplatesAction', path.join(srcLightning, 'iconSvgTemplatesAction/iconSvgTemplatesAction.js')],
+  ['iconSvgTemplatesCustom', path.join(srcLightning, 'iconSvgTemplatesCustom/iconSvgTemplatesCustom.js')],
 ];
 
 /**
